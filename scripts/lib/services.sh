@@ -270,6 +270,9 @@ EOF
             [[ -n "$up" ]] || continue
             $first && { echo "      availableUpgrades:" >> "$out"; first=false; }
             echo "        - name: $(template_name_for "$chart" "$up")" >> "$out"
+            # Optional in the CRD, but the route is computed from it: without
+            # it KCM falls back to the template name, which is not a semver.
+            echo "          version: $up" >> "$out"
         done < <(chain_upgrades_for "$v")
     done < <(chain_versions)
 }

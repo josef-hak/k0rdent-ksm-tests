@@ -1,0 +1,35 @@
+name: 05chain05_versioned_hops
+group: Sequential upgrades
+description: >-
+  The same walk as 05chain04, on the podinfo chart from the upstream example
+  that was reported working. Its point is the chain itself: every hop carries
+  an explicit version, which is what minimumUpgradeStep parses. 05chain04 omits
+  them, the fallback copies the template name in instead, and the semver parse
+  then discards the whole route.
+
+templateChain:
+  supportedTemplates:
+    - version: 6.5.0
+      availableUpgrades:
+        - 6.6.0
+    - version: 6.6.0
+      availableUpgrades:
+        - 6.7.0
+    - version: 6.7.0
+
+upgrade:
+  steps:
+    - version: 6.7.0
+      expect: applied
+      viaVersions:
+        - 6.6.0
+
+services:
+  - name: podinfo
+    chart: podinfo
+    # Not the k0rdent catalog: podinfo is not published there, and the upstream
+    # example is what this scenario is meant to reproduce.
+    repo: https://stefanprodan.github.io/podinfo
+    version: 6.5.0
+    namespace: podinfo
+    waitForPods: podinfo
