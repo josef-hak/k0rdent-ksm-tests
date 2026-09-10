@@ -110,10 +110,10 @@ export KCM
 # release -- install the published chart (tests what users get)
 # source  -- build the images and charts from a git checkout (tests a PR/main)
 KCM_MODE="${KCM_MODE:-release}"
-KCM_VERSION="${KCM_VERSION:-1.11.0}"
+KCM_VERSION="${KCM_VERSION:-'1.12.0-rc1-21-ga282d499'}"
 # The chart itself, not the registry holding it: the template charts live
 # alongside it, so the registry is derived by stripping the last segment.
-KCM_RELEASE_URL="${KCM_RELEASE_URL:-oci://ghcr.io/k0rdent/kcm/charts/kcm}"
+KCM_RELEASE_URL="${KCM_RELEASE_URL:-oci://ghcr.io/k0rdent/kcm/staging/kcm}"
 KCM_SRC_URL="${KCM_SRC_URL:-https://github.com/K0rdent/kcm.git}"
 # Checked here rather than in a function a script could forget to call.
 case "$KCM_MODE" in

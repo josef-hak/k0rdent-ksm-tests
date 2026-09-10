@@ -88,8 +88,8 @@ another release, a fork, a specific commit — set the inputs directly.
 | Variable | Default | Meaning |
 |---|---|---|
 | `KCM_MODE` | `release` | `release` pulls a published chart, `source` builds a checkout |
-| `KCM_VERSION` | `1.11.0` | chart version, release mode |
-| `KCM_RELEASE_URL` | `oci://ghcr.io/k0rdent/kcm/charts/kcm` | the chart to pull |
+| `KCM_VERSION` | `1.12.0-rc1-21-ga282d499` | chart version, release mode |
+| `KCM_RELEASE_URL` | `oci://ghcr.io/k0rdent/kcm/staging/kcm` | the chart to pull |
 | `KCM_SRC_URL` | `https://github.com/K0rdent/kcm.git` | repository to build, source mode |
 | `KCM_REF` | the matching tag, or `main` | branch, tag or commit |
 
