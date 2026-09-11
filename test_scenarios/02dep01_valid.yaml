@@ -10,6 +10,8 @@ description: >-
 # ClusterStorageContainer, so the uninstall fails with "ensure CRDs are
 # installed first" and the MCS finalizer never clears. Fixed between v1.11.0
 # and v1.12.0-rc1 (fixed); main is unaffected.
+# - 1c1a289 - fix: unintended release deletion on failed upgrade - PASSING
+# - 3e34b8f - bump flux - failing
 # - 44ef449 - k0smotron to v2.1.0 - "Remove services" failing
 
 # Charts come from k0rdent/catalog's registry. Those are thin wrappers that

@@ -90,3 +90,16 @@ ln -sfn kcfg_k0rdent_1.12.0-rc1 kcfg_k0rdent
 export KCM=1.12.0-rc.3 # (required)
 ./scripts/remove_k0rdent.sh # remove k0rdent-<KCM> in-docker cluster, remove kcfg_k0rdent and kcfg_k0rdent_<KCM>
 ~~~
+
+### MCS removal deadlock troubleshooting
+~~~bash
+export KCM=1.11.0-33-g1c1a289a # first passing version (by Artem)
+export OCI_URL=oci://ghcr.io/k0rdent/kcm/staging
+./scripts/deploy_k0rdent.sh
+export SCENARIO=02dep01_valid
+export SCENARIO_KEEP=false
+./scripts/scenario_run.sh # passes
+
+# failing when using manual clean up after some delay - why ???
+# - discuse with AI
+~~~
