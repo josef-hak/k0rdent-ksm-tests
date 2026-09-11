@@ -9,7 +9,8 @@ description: >-
 # kserve-crd before uninstalling kserve-resources, whose release still holds a
 # ClusterStorageContainer, so the uninstall fails with "ensure CRDs are
 # installed first" and the MCS finalizer never clears. Fixed between v1.11.0
-# and v1.12.0-rc1; main is unaffected.
+# and v1.12.0-rc1 (fixed); main is unaffected.
+# - 44ef449 - k0smotron to v2.1.0 - "Remove services" failing
 
 # Charts come from k0rdent/catalog's registry. Those are thin wrappers that
 # declare the upstream chart as a dependency of the same name, so values are
