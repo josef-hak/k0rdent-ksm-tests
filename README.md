@@ -19,37 +19,28 @@ and the services half of the last, `remove_k0rdent.sh` the rest.
 
 ```mermaid
 %%{init: {'flowchart': {'padding': 16, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%
-flowchart TB
-    subgraph ROW1[" "]
-        direction LR
-        subgraph P1["1 · env"]
-            direction LR
-            E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
-        end
-        subgraph P2["2 · deploy"]
-            direction LR
-            D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
-        end
-        P1 --> P2
+flowchart LR
+    subgraph P1["1 · env"]
+        direction TB
+        E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
     end
 
-    subgraph ROW2[" "]
-        direction LR
-        subgraph P3["3 · upgrade"]
-            direction LR
-            U1["bump versions"] -.- U2["or walk<br/>a chain"]
-        end
-        subgraph P4["4 · cleanup"]
-            direction LR
-            C1["remove<br/>services"] --> C2["remove<br/>cluster"]
-        end
-        P3 --> P4
+    subgraph P2["2 · deploy"]
+        direction TB
+        D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
     end
 
-    ROW1 ~~~ ROW2
+    subgraph P3["3 · upgrade"]
+        direction TB
+        U1["bump versions"] -.- U2["or walk<br/>a chain"]
+    end
 
-    classDef row fill:none,stroke:none
-    class ROW1,ROW2 row
+    subgraph P4["4 · cleanup"]
+        direction TB
+        C1["remove<br/>services"] --> C2["remove<br/>cluster"]
+    end
+
+    P1 --> P2 --> P3 --> P4
 
     classDef env fill:#dbeafe,stroke:#2563eb,color:#0b1220
     classDef dep fill:#ede9fe,stroke:#7c3aed,color:#0b1220
@@ -62,9 +53,8 @@ flowchart TB
     class C1,C2 out
 ```
 
-<sub>The phases run in the order they are numbered, top row first. Phase 3 runs only
-for the scenarios that declare `upgrade:` or `templateChain:`; the others go straight
-from deploy to cleanup. Every box is one script in
+<sub>Phase 3 runs only for the scenarios that declare `upgrade:` or `templateChain:`;
+the others go straight from deploy to cleanup. Every box is one script in
 `scripts/steps/`, and CI runs them as separate steps, so a red job says where it
 broke without anyone opening a log.</sub>
 
