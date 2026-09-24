@@ -12,15 +12,15 @@ version (source or release).
 ```mermaid
 %%{init: {'flowchart': {'padding': 16, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%
 flowchart LR
-    subgraph P1["1: Environment"]
+    subgraph P1["1: Build environment"]
         direction TB
         subgraph KCMSRC["Prepare KCM"]
             direction LR
-            E1["KCM build (source)"] -. "OR" .- E2["KCM pull (release)"]
+            E1["Build KCM (source)"] -. "OR" .- E2["Pull KCM (release)"]
         end
-        E3["Run k0s cluster (docker)"]
+        E3["Start k0s cluster (Docker)"]
         E4["Install KCM"]
-        E5["Apply Management config"]
+        E5["Apply Management object"]
         KCMSRC --> E3 --> E4 --> E5
     end
 
@@ -31,10 +31,10 @@ flowchart LR
 
     subgraph P3["3: Upgrade services"]
         direction TB
-        U1["Standard upgrade"] -. "OR" .- U2["Upgrade by ServiceTemplateChain"]
+        U1["Direct upgrade"] -. "OR" .- U2["Upgrade via ServiceTemplateChain"]
     end
 
-    subgraph P4["4: Cleanup"]
+    subgraph P4["4: Clean up"]
         direction TB
         C1["Remove services"] --> C2["Remove k0s cluster"]
     end
