@@ -1,29 +1,55 @@
 # k0rdent KSM Tests
 
-Run different testing `Scenarios` on any [k0rdent KCM](https://github.com/k0rdent/kcm)
-version (source or release).
+End-to-end tests for **KSM**, the layer of [k0rdent KCM](https://github.com/k0rdent/kcm)
+that turns a `MultiClusterService` into services running on a cluster.
 
-## Modes
-- **Local** - run tests locally in your machine (docker) for troubleshooting.
-- **CI** - run tests in GitHub CI workflows.
+Everything is a shell script, so CI runs exactly what you run locally. One scenario
+is one YAML file; adding a test means adding that file, nothing else.
 
-## Self-management testing
-Tests are run in `self-management` mode to keep testing environment as simple as
-possible, because it just requires a single testing k0s cluster.
+> [!NOTE]
+> Tests run in **self-management** mode: the `MultiClusterService` targets the
+> management cluster itself, so a scenario needs one k0s-in-docker cluster and
+> nothing else. No second cluster, no `ClusterDeployment`, no cloud credentials,
+> no cost.
 
-Everything is a shell script, same scripts run in CI and locally.
+## What a scenario does
 
-## Testing Scenarios
+Each step is one script under `scripts/steps/`, and CI runs them as separate steps —
+so a red job says where it broke without anyone opening a log.
 
-Each scenario builds a throwaway environment — one k0s cluster in Docker
-running KCM — exercises one KSM behaviour and tears it down. Nothing is
-provisioned: the `MultiClusterService` asks for `selfManagement`, so KCM
-deploys the services into the cluster it runs in. No second cluster, no
-`ClusterDeployment`, no cloud credentials, no cost.
+```mermaid
+flowchart TD
+    T["install_servicetemplate.sh<br/><small>ServiceTemplates named by the scenario</small>"]
+    D["deploy_mcs.sh<br/><small>MultiClusterService, then wait for the services</small>"]
+    U{"scenario has<br/>upgrade:?"}
+    US["upgrade_services.sh<br/><small>bump some, assert what moved</small>"]
+    C{"scenario has<br/>templateChain:?"}
+    UC["upgrade_chain.sh<br/><small>walk the chain, assert each hop</small>"]
+    R["remove_services.sh<br/><small>MCS deleted, releases and workloads gone</small>"]
+
+    T --> D --> U
+    U -- yes --> US --> C
+    U -- no --> C
+    C -- yes --> UC --> R
+    C -- no --> R
+```
+
+What the scenario asks for, and where it ends up:
+
+```mermaid
+flowchart LR
+    Y["scenario YAML"] --> M["MultiClusterService"]
+    M --> S["ServiceSet<br/><small>spec: what may be applied now</small>"]
+    S --> P["sveltos Profile<br/><small>spec.helmCharts, in order</small>"]
+    P --> H["helm releases<br/><small>in the target cluster</small>"]
+    H -- "poller writes back" --> ST["ServiceSet.status<br/><small>what the checks read</small>"]
+```
+
+## Scenarios
 
 | Scenario | Asserts |
 |---|---|
-| `101_basic` | one service reaches the child cluster and can be removed |
+| `101_basic` | one service reaches the cluster and can be removed |
 | `201_svcdep` | a `dependsOn` chain deploys in order |
 | `202_svcdep_invalid` | an invalid service stops the rollout: nothing behind it runs, nothing before it is rolled back |
 | `301_upgrade` | upgrading one service leaves the others untouched |
@@ -35,16 +61,84 @@ deploys the services into the cluster it runs in. No second cluster, no
 | `503_direct_chain` | only what the chain lists is accepted |
 | `504_stepwise_chain` | a multi-hop chain is walked, not skipped |
 
-Each runs against two KCM builds: `src: main` and `release: 1.12.0-rc.3`.
+Every scenario runs against each KCM build in
+[`scripts/config/kcm-variants.yaml`](scripts/config/kcm-variants.yaml) — today
+`src: main` and `release: 1.12.0-rc.3`. Install, `Management` reconcile and teardown
+are asserted too, because KSM sits on them. Cloud provisioning is out of scope.
 
-Install, `Management` reconcile and teardown are asserted too, because KSM
-sits on them. Cloud provisioning is out of scope.
+## Quick start
 
-## Structure
+```bash
+export KCM=1.12.0-rc.3          # a chart version, or a git ref with KCM_MODE=source
+./scripts/deploy_k0rdent.sh     # k0s-in-docker cluster "k0rdent-$KCM" + KCM, ~7 min
+
+SCENARIO=201_svcdep ./scripts/run_scenario.sh   # deploy, assert, remove
+
+./scripts/remove_k0rdent.sh 1   # the # column of ./scripts/k0rdent_clusters.sh
+```
+
+| Command | What it answers |
+|---|---|
+| `./scripts/scenarios.sh` | which scenarios exist |
+| `./scripts/k0rdent_clusters.sh` | which clusters exist, and which one `kcfg_k0rdent` points at |
+| `SCENARIO_KEEP=true ./scripts/run_scenario.sh` | same run, but leave the services up to poke at |
+| `./scripts/clean_scenario.sh` | remove what `SCENARIO_KEEP=true` left behind |
+| `./scripts/tests/bash/run.sh` | the unit tests — no cluster needed |
+
+Several clusters can exist side by side; `kcfg_k0rdent` is a symlink to whichever
+one the scenarios talk to, so switching is `ln -sfn kcfg_k0rdent_<KCM> kcfg_k0rdent`.
+
+## Adding a scenario
+
+Drop a file in [`test_scenarios/`](test_scenarios). Nothing else needs editing:
+`./scripts/scenarios.sh` and CI both discover it, and CI works out which steps it
+exercises from the blocks it uses.
+
+```yaml
+name: 601_thing          # must match the filename
+group: Some area         # heading in ./scripts/scenarios.sh
+description: What it proves.
+
+services:
+  - name: traefik
+    chart: traefik
+    version: 41.2.0
+    repo: oci://ghcr.io/k0rdent/catalog/charts
+    namespace: traefik
+    waitForPods: traefik-    # optional
+    dependsOn: cert-manager  # optional
+    values: |                # optional
+      traefik:
+        ...
+```
+
+Optional blocks, each switching on extra checks:
+
+| Block | Asserts |
+|---|---|
+| `expect: {failed, deployed, blocked}` | the rollout stops at `failed`, `blocked` never installs, `deployed` survives |
+| `upgrade: {services, expect}` | only `rolledOut` moves; `untouched` keeps its chart *and* its pod UIDs |
+| `templateChain` + `upgrade.steps` | each step is `applied` or `rejected` as the chain dictates |
+| `multiClusterServices` | replaces `services:` when a scenario needs more than one MCS |
+
+> [!IMPORTANT]
+> KCM runs its own cert-manager in this cluster and its helm release owns the
+> cert-manager CRDs. A scenario deploying cert-manager must set
+> `crds.enabled: false` and a `fullnameOverride`, or helm refuses to import
+> resources another release already owns. That is the price of self-management:
+> the services land in a cluster that is not empty.
+
+> [!WARNING]
+> Scenarios are **not** isolated from each other on a shared cluster:
+> `202_svcdep_invalid` breaks cert-manager on purpose, so anything after it that
+> needs cert-manager fails too. Sharing a cluster is a debugging convenience, not
+> a substitute for CI.
+
+## Layout
 
 ```
 test_scenarios/     one YAML per scenario -- the whole test definition
-scripts/            the entry points below; everything you run by hand
+scripts/            the entry points above; everything you run by hand
   steps/            one script per pipeline step, 1:1 with the steps in CI
   utils/            subroutines the steps call; never run directly
   lib/              shared helpers; services.sh reads the scenario files
@@ -53,47 +147,29 @@ scripts/            the entry points below; everything you run by hand
 .github/workflows/  e2e.yml picks what to run, e2e-scenario.yml runs it
 ```
 
-## Running locally
+## CI
 
-### Create testing k0rdent cluster
-~~~bash
-# Create local k0s-in-docker cluster "k0rdent-<KCM>", deploy KCM
-export KCM=1.12.0-rc.3 # (required), can be any release tag of OCI_URL chart
-# ... export k0rdent cluster kubeconfig to kcfg_k0rdent and kcfg_k0rdent_<KCM>
-# export TEST_MODE=self (default); TODO later: "adopted, aws, gcp"
-# export KCM_MODE=release (default); "source" - build and deploy kcm from SRC_URL git, KCM ref (tag, branch, sha)
-./scripts/deploy_k0rdent.sh
-~~~
+A pull request runs only what the change can reach; `main` and nightly run the whole
+matrix. The variants come from `scripts/config/kcm-variants.yaml`, so adding a KCM
+version is a change to that file alone.
 
-### Run scenario
-~~~bash
-# TEST_MODE=self (default); "adopted" - run scenario in adopted mode (child)
-# Run scenario on KUBECONFIG=kcfg_k0rdent
-export SCENARIO=101_basic # (required) scenario id, fail for invalid, list available scenarios.
-# export SCENARIO_KEEP=false (default) # optionally keep resources created by scenario 
-./scripts/run_scenario.sh
-# ./scripts/clean_scenario.sh # remove scenario objects (after SCENARIO_KEEP=true)
-~~~
+<details>
+<summary><b>Troubleshooting a local run</b></summary>
 
-### List available testing scenarios
-~~~bash
-./scripts/scenarios.sh
-# 101_basic        # one service reaches the child cluster and can be removed
-# 201_svcdep   # a `dependsOn` chain deploys in order
-# ...
-~~~
+**The scenario hangs on "waiting for the MultiClusterService to disappear".**
+Something in the chain cannot be uninstalled. Look at the ClusterSummary:
 
-### List testing k0rdent clusters
-~~~bash
-# Every k0rdent-<KCM> cluster, and which one kcfg_k0rdent points at
-./scripts/k0rdent_clusters.sh
+```bash
+export KUBECONFIG=kcfg_k0rdent
+kubectl get clustersummary -A -o jsonpath='{range .items[*]}{.status.featureSummaries[*].failureMessage}{"\n"}{end}'
+kubectl logs -n projectsveltos deploy/addon-controller --tail=50 | grep -i uninstall
+```
 
-# Switch the scenarios to another one
-ln -sfn kcfg_k0rdent_1.12.0-rc1 kcfg_k0rdent
-~~~
+**A ServiceTemplate never becomes valid.** Usually the cluster is under disk
+pressure and the controllers were evicted — `df -h /` on the host, then
+`kubectl describe node | grep -A8 Conditions`. A source build needs ~15% free.
 
-### Delete testing k0rdent cluster
-~~~bash
-# remove test environment (cluster) by given index (see ./scripts/k0rdent_clusters.sh output)
-./scripts/remove_k0rdent.sh 1
-~~~
+**Everything looks stuck after a failed run.** Diagnostics for the last run are
+in `logs*/`; `./scripts/steps/collect_logs.sh` refreshes them.
+
+</details>
