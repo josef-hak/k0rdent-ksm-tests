@@ -69,7 +69,7 @@ deploys the services into the cluster it runs in. No second cluster, no
 | Scenario | Asserts |
 |---|---|
 | `101_basic` | one service reaches the child cluster and can be removed |
-| `201_svcdep` | a `dependsOn` chain deploys in order |
+| [`201_svcdep`](test_scenarios/201_svcdep.md) | a `dependsOn` chain deploys in order |
 | `202_svcdep_invalid` | an invalid service stops the rollout: nothing behind it runs, nothing before it is rolled back |
 | `301_upgrade` | upgrading one service leaves the others untouched |
 | `302_upgrade_invalid_atomic` | a failed atomic upgrade returns to the previous healthy state |
