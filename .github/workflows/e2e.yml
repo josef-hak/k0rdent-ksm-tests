@@ -6,6 +6,37 @@ name: E2E
 # change with no workflow edit.
 
 on:
+  # Same knobs as workflow_dispatch, for another repository to run its own build
+  # through this pipeline. k0rdent/kcm calls it per pull request with the head
+  # commit, which is why a call is treated exactly like a manual run below.
+  workflow_call:
+    inputs:
+      KCM:
+        description: 'KCM version (chart version, branch, tag, sha)'
+        type: string
+        required: false
+        default: ''
+      KCM_MODE:
+        description: 'KCM deployoment mode, options: source, release'
+        type: string
+        required: false
+        default: 'release'
+      SRC_URL:
+        description: 'KCM source git repository (kcm_mode: source)'
+        type: string
+        required: false
+        default: 'https://github.com/k0rdent/kcm.git'
+      OCI_URL:
+        description: 'KCM release oci url (kcm_mode: release)'
+        type: string
+        required: false
+        default: 'oci://ghcr.io/k0rdent/kcm/charts'
+      scenarios:
+        description: '(empty = all), e.g. "101_basic, 201_svcdep"'
+        type: string
+        required: false
+        default: ''
+
   workflow_dispatch:
     inputs:
       KCM:
@@ -67,9 +98,26 @@ jobs:
     outputs:
       scenarios: ${{ steps.scan.outputs.scenarios }}
     steps:
+      # In a cross-repo call the github context describes the caller, so a bare
+      # checkout clones that repository instead of this one. job_workflow_ref
+      # names this workflow file and the ref it was reached at; it is empty only
+      # when this workflow runs on its own events, where the defaults are right.
+      - name: Resolve this repository
+        id: self
+        env:
+          SELF: ${{ github.job_workflow_ref }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$SELF" ]]; then
+            echo "repo=${SELF%%/.github/*}" >> "$GITHUB_OUTPUT"
+            echo "ref=${SELF#*@}"           >> "$GITHUB_OUTPUT"
+          fi
+
       # Full history: the pull-request selection diffs against the base commit.
       - uses: actions/checkout@v7
         with:
+          repository: ${{ steps.self.outputs.repo || github.repository }}
+          ref:        ${{ steps.self.outputs.ref  || github.ref }}
           fetch-depth: 0
 
       - name: Install yq
@@ -82,11 +130,16 @@ jobs:
         id: scan
         # Via env, not inline interpolation: free-text dispatch input.
         env:
-          WANT_SCENARIOS: ${{ github.event.inputs.scenarios }}
-          WANT_KCM: ${{ github.event.inputs.KCM }}
-          WANT_KCM_MODE: ${{ github.event.inputs.KCM_MODE }}
-          WANT_SRC_URL: ${{ github.event.inputs.SRC_URL }}
-          EVENT: ${{ github.event_name }}
+          WANT_SCENARIOS: ${{ inputs.scenarios }}
+          WANT_KCM: ${{ inputs.KCM }}
+          WANT_KCM_MODE: ${{ inputs.KCM_MODE }}
+          WANT_SRC_URL: ${{ inputs.SRC_URL }}
+          # A cross-repo call is a manual run whose inputs happen to come from
+          # another repository: one build, the scenarios it asked for, and none
+          # of the diff-based selection below -- github.event_name would say
+          # 'pull_request' there, but the diff and the base sha belong to the
+          # caller, not to this repository.
+          EVENT: ${{ github.job_workflow_ref != '' && 'workflow_dispatch' || github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
           FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full') }}
@@ -296,5 +349,5 @@ jobs:
       kcm_variants: ${{ matrix.scenario.variants }}
       has_upgrade: ${{ matrix.scenario.upgrade }}
       has_chain: ${{ matrix.scenario.chain }}
-      src_url: ${{ github.event.inputs.SRC_URL || '' }}
-      oci_url: ${{ github.event.inputs.OCI_URL || '' }}
+      src_url: ${{ inputs.SRC_URL || '' }}
+      oci_url: ${{ inputs.OCI_URL || '' }}

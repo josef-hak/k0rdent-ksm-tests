@@ -1,0 +1,11 @@
+# github.job_workflow_ref is a documented context property -- it names the
+# reusable workflow and the ref it was called at, and is what lets e2e.yml
+# check out this repository rather than the caller's. actionlint 1.7.7 does
+# not have it in its github-context model, so it reports it as undefined.
+paths:
+  .github/workflows/e2e.yml:
+    ignore:
+      - 'property "job_workflow_ref" is not defined'
+  .github/workflows/e2e-scenario.yml:
+    ignore:
+      - 'property "job_workflow_ref" is not defined'

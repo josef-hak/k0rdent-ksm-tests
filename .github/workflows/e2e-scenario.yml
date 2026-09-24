@@ -60,7 +60,25 @@ jobs:
       SCENARIO: ${{ inputs.scenario }}
       TEST_MODE: self
     steps:
+      # In a cross-repo call the github context describes the caller, so a bare
+      # checkout clones that repository instead of this one. job_workflow_ref
+      # names this workflow file and the ref it was reached at; it is empty only
+      # when this workflow runs on its own events, where the defaults are right.
+      - name: Resolve this repository
+        id: self
+        env:
+          SELF: ${{ github.job_workflow_ref }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$SELF" ]]; then
+            echo "repo=${SELF%%/.github/*}" >> "$GITHUB_OUTPUT"
+            echo "ref=${SELF#*@}"           >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v7
+        with:
+          repository: ${{ steps.self.outputs.repo || github.repository }}
+          ref:        ${{ steps.self.outputs.ref  || github.ref }}
 
       # runner.* is not available in job-level env, so DEBUG is set here.
       - name: Enable debug output
