@@ -20,24 +20,31 @@ and the services half of the last, `remove_k0rdent.sh` the rest.
 ```mermaid
 %%{init: {'flowchart': {'padding': 16, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%
 flowchart LR
-    subgraph P1["1 · env"]
+    subgraph P1["1: Environment"]
         direction TB
-        E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
+        E1["KCM build (source)"]
+        E2["KCM pull (release)"]
+        E3["Run k0s cluster (docker)"]
+        E4["Install KCM"]
+        E5["Apply Management config"]
+        E1 --> E3
+        E2 --> E3
+        E3 --> E4 --> E5
     end
 
-    subgraph P2["2 · deploy"]
+    subgraph P2["2: Deploy services"]
         direction TB
-        D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
+        D1["Install ServiceTemplates"] --> D2["Deploy MultiClusterService"]
     end
 
-    subgraph P3["3 · upgrade"]
+    subgraph P3["3: Upgrade services"]
         direction TB
-        U1["bump versions"] -.- U2["or walk<br/>a chain"]
+        U1["Standard upgrade"] -. "OR" .- U2["Upgrade by ServiceTemplateChain"]
     end
 
-    subgraph P4["4 · cleanup"]
+    subgraph P4["4: Cleanup"]
         direction TB
-        C1["remove<br/>services"] --> C2["remove<br/>cluster"]
+        C1["Remove services"] --> C2["Remove k0s cluster"]
     end
 
     P1 --> P2 --> P3 --> P4
@@ -47,7 +54,7 @@ flowchart LR
     classDef upg fill:#fef3c7,stroke:#d97706,color:#0b1220
     classDef out fill:#dcfce7,stroke:#16a34a,color:#0b1220
 
-    class E1,E2,E3 env
+    class E1,E2,E3,E4,E5 env
     class D1,D2 dep
     class U1,U2 upg
     class C1,C2 out
