@@ -22,8 +22,7 @@ and the services half of the last, `remove_k0rdent.sh` the rest.
 flowchart LR
     subgraph P1["1: Environment"]
         direction TB
-        E1["KCM build (source)"]
-        E2["KCM pull (release)"]
+        E1["KCM build (source)"] -. "OR" .- E2["KCM pull (release)"]
         E3["Run k0s cluster (docker)"]
         E4["Install KCM"]
         E5["Apply Management config"]
