@@ -12,39 +12,50 @@ is one YAML file; adding a test means adding that file, nothing else.
 > nothing else. No second cluster, no `ClusterDeployment`, no cloud credentials,
 > no cost.
 
-## What a scenario does
+## A run, end to end
 
-Each step is one script under `scripts/steps/`, and CI runs them as separate steps —
-so a red job says where it broke without anyone opening a log.
+Four phases. `deploy_k0rdent.sh` does the first, `run_scenario.sh` the middle two
+and the services half of the last, `remove_k0rdent.sh` the rest.
 
 ```mermaid
-flowchart TD
-    T["install_servicetemplate.sh<br/><small>ServiceTemplates named by the scenario</small>"]
-    D["deploy_mcs.sh<br/><small>MultiClusterService, then wait for the services</small>"]
-    U{"scenario has<br/>upgrade:?"}
-    US["upgrade_services.sh<br/><small>bump some, assert what moved</small>"]
-    C{"scenario has<br/>templateChain:?"}
-    UC["upgrade_chain.sh<br/><small>walk the chain, assert each hop</small>"]
-    R["remove_services.sh<br/><small>MCS deleted, releases and workloads gone</small>"]
+flowchart LR
+    subgraph P1["1 · env"]
+        direction LR
+        E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
+    end
 
-    T --> D --> U
-    U -- yes --> US --> C
-    U -- no --> C
-    C -- yes --> UC --> R
-    C -- no --> R
+    subgraph P2["2 · deploy"]
+        direction LR
+        D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
+    end
 
-    classDef always fill:#dbeafe,stroke:#2563eb,stroke-width:1px,color:#0b1220
-    classDef optional fill:#fef3c7,stroke:#d97706,stroke-width:1px,color:#0b1220
-    classDef gate fill:#f1f5f9,stroke:#64748b,stroke-width:1px,color:#0b1220
-    classDef teardown fill:#dcfce7,stroke:#16a34a,stroke-width:1px,color:#0b1220
+    subgraph P3["3 · upgrade"]
+        direction LR
+        U1["bump versions"] -.- U2["or walk<br/>a chain"]
+    end
 
-    class T,D always
-    class US,UC optional
-    class U,C gate
-    class R teardown
+    subgraph P4["4 · cleanup"]
+        direction LR
+        C1["remove<br/>services"] --> C2["remove<br/>cluster"]
+    end
+
+    P1 --> P2 --> P3 --> P4
+
+    classDef env fill:#dbeafe,stroke:#2563eb,color:#0b1220
+    classDef dep fill:#ede9fe,stroke:#7c3aed,color:#0b1220
+    classDef upg fill:#fef3c7,stroke:#d97706,color:#0b1220
+    classDef out fill:#dcfce7,stroke:#16a34a,color:#0b1220
+
+    class E1,E2,E3 env
+    class D1,D2 dep
+    class U1,U2 upg
+    class C1,C2 out
 ```
 
-<sub>Blue always runs, amber only when the scenario declares that block, green is the teardown every scenario ends with.</sub>
+<sub>Phase 3 runs only for the scenarios that declare `upgrade:` or `templateChain:`;
+the others go straight from deploy to cleanup. Every box is one script in
+`scripts/steps/`, and CI runs them as separate steps, so a red job says where it
+broke without anyone opening a log.</sub>
 
 What the scenario asks for, and where it ends up:
 
