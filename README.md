@@ -32,7 +32,19 @@ flowchart TD
     U -- no --> C
     C -- yes --> UC --> R
     C -- no --> R
+
+    classDef always fill:#dbeafe,stroke:#2563eb,stroke-width:1px,color:#0b1220
+    classDef optional fill:#fef3c7,stroke:#d97706,stroke-width:1px,color:#0b1220
+    classDef gate fill:#f1f5f9,stroke:#64748b,stroke-width:1px,color:#0b1220
+    classDef teardown fill:#dcfce7,stroke:#16a34a,stroke-width:1px,color:#0b1220
+
+    class T,D always
+    class US,UC optional
+    class U,C gate
+    class R teardown
 ```
+
+<sub>Blue always runs, amber only when the scenario declares that block, green is the teardown every scenario ends with.</sub>
 
 What the scenario asks for, and where it ends up:
 
@@ -43,7 +55,22 @@ flowchart LR
     S --> P["sveltos Profile<br/><small>spec.helmCharts, in order</small>"]
     P --> H["helm releases<br/><small>in the target cluster</small>"]
     H -- "poller writes back" --> ST["ServiceSet.status<br/><small>what the checks read</small>"]
+
+    classDef ours fill:#ede9fe,stroke:#7c3aed,stroke-width:1px,color:#0b1220
+    classDef kcm fill:#dbeafe,stroke:#2563eb,stroke-width:1px,color:#0b1220
+    classDef sveltos fill:#ffe4e6,stroke:#e11d48,stroke-width:1px,color:#0b1220
+    classDef cluster fill:#dcfce7,stroke:#16a34a,stroke-width:1px,color:#0b1220
+
+    class Y ours
+    class M,S,ST kcm
+    class P sveltos
+    class H cluster
+
+    linkStyle 4 stroke:#16a34a,stroke-width:1px,stroke-dasharray:4 3
 ```
+
+<sub>Purple is yours, blue is KCM/KSM, red is sveltos, green is the cluster — the
+dashed edge is the only one pointing back, and it is what every assertion reads.</sub>
 
 ## Scenarios
 
