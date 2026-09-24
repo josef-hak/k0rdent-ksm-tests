@@ -334,10 +334,13 @@ jobs:
           echo "scenarios=$scenarios" >> "$GITHUB_OUTPUT"
           jq -r '.[] | "  \(.id): \(.variants | fromjson | map(.id) | join(", "))"' <<< "$scenarios"
 
-  # No name: the scenario is in the called job's name, where it stays legible
-  # however many callers are stacked above it. A name here would only repeat it,
-  # so the job id is left to label the matrix group instead.
+  # A fixed name, not the scenario: that is in the called job's name, where it
+  # stays legible however many callers are stacked above it, and repeating it
+  # here would only make the path say it twice. Not omitted either -- a matrix
+  # job without a name is labelled with its matrix entry, and these are objects,
+  # so the whole JSON ends up in the title.
   scenario:
+    name: scenario
     needs: discover
     # A docs-only pull request selects nothing.
     if: needs.discover.outputs.scenarios != '[]'
