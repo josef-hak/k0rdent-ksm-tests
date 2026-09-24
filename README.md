@@ -22,7 +22,7 @@ and the services half of the last, `remove_k0rdent.sh` the rest.
 flowchart LR
     subgraph P1["1: Environment"]
         direction TB
-        subgraph KCMSRC[" "]
+        subgraph KCMSRC["Prepare KCM"]
             direction LR
             E1["KCM build (source)"] -. "OR" .- E2["KCM pull (release)"]
         end
@@ -48,9 +48,6 @@ flowchart LR
     end
 
     P1 --> P2 --> P3 --> P4
-
-    classDef bare fill:none,stroke:none
-    class KCMSRC bare
 
     classDef env fill:#dbeafe,stroke:#2563eb,color:#0b1220
     classDef dep fill:#ede9fe,stroke:#7c3aed,color:#0b1220
