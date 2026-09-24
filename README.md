@@ -46,7 +46,7 @@ flowchart TB
         P3 --> P4
     end
 
-    ROW1 --> ROW2
+    P2 --> P3
 
     classDef row fill:none,stroke:none
     class ROW1,ROW2 row
