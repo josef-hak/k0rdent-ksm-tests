@@ -334,13 +334,13 @@ jobs:
           echo "scenarios=$scenarios" >> "$GITHUB_OUTPUT"
           jq -r '.[] | "  \(.id): \(.variants | fromjson | map(.id) | join(", "))"' <<< "$scenarios"
 
-  # A fixed name, not the scenario: that is in the called job's name, where it
-  # stays legible however many callers are stacked above it, and repeating it
-  # here would only make the path say it twice. Not omitted either -- a matrix
-  # job without a name is labelled with its matrix entry, and these are objects,
-  # so the whole JSON ends up in the title.
+  # The called job repeats the scenario, on purpose: a reusable workflow's job is
+  # shown under the names of every job above it and the sidebar shows only the
+  # last segment, so each has to stand on its own. Not omitted -- a matrix job
+  # without a name is labelled with its matrix entry, and these are objects, so
+  # the whole JSON ends up in the title.
   scenario:
-    name: scenario
+    name: ${{ matrix.scenario.id }}
     needs: discover
     # A docs-only pull request selects nothing.
     if: needs.discover.outputs.scenarios != '[]'
