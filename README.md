@@ -46,7 +46,7 @@ flowchart TB
         P3 --> P4
     end
 
-    P2 --> P3
+    ROW1 ~~~ ROW2
 
     classDef row fill:none,stroke:none
     class ROW1,ROW2 row
@@ -62,8 +62,9 @@ flowchart TB
     class C1,C2 out
 ```
 
-<sub>Phase 3 runs only for the scenarios that declare `upgrade:` or `templateChain:`;
-the others go straight from deploy to cleanup. Every box is one script in
+<sub>The phases run in the order they are numbered, top row first. Phase 3 runs only
+for the scenarios that declare `upgrade:` or `templateChain:`; the others go straight
+from deploy to cleanup. Every box is one script in
 `scripts/steps/`, and CI runs them as separate steps, so a red job says where it
 broke without anyone opening a log.</sub>
 
