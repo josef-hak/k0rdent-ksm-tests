@@ -5,6 +5,13 @@ name: E2E
 # test_scenarios/*.yaml and kcm-variants.yaml -- so adding either is a YAML
 # change with no workflow edit.
 
+# Cross-repo calls check this out by name: in a called workflow the github
+# context describes the caller, so github.repository is not this repository and
+# a bare checkout clones the wrong one. Moves with the repository, alongside
+# the caller's uses: line.
+env:
+  SELF_REPO: josef-hak/k0rdent-ksm-tests
+
 on:
   # Same knobs as workflow_dispatch, for another repository to run its own build
   # through this pipeline. k0rdent/kcm calls it per pull request with the head
@@ -36,6 +43,14 @@ on:
         type: string
         required: false
         default: ''
+      ksm_ref:
+        description: >-
+          The ref of THIS repository to run, matching the one in the caller's
+          uses:. Required, and not discoverable from here: in a called workflow
+          the github context describes the caller, and no context exposes the
+          called workflow's own ref.
+        type: string
+        required: true
 
   workflow_dispatch:
     inputs:
@@ -98,26 +113,11 @@ jobs:
     outputs:
       scenarios: ${{ steps.scan.outputs.scenarios }}
     steps:
-      # In a cross-repo call the github context describes the caller, so a bare
-      # checkout clones that repository instead of this one. job_workflow_ref
-      # names this workflow file and the ref it was reached at; it is empty only
-      # when this workflow runs on its own events, where the defaults are right.
-      - name: Resolve this repository
-        id: self
-        env:
-          SELF: ${{ github.job_workflow_ref }}
-        run: |
-          set -euo pipefail
-          if [[ -n "$SELF" ]]; then
-            echo "repo=${SELF%%/.github/*}" >> "$GITHUB_OUTPUT"
-            echo "ref=${SELF#*@}"           >> "$GITHUB_OUTPUT"
-          fi
-
       # Full history: the pull-request selection diffs against the base commit.
       - uses: actions/checkout@v7
         with:
-          repository: ${{ steps.self.outputs.repo || github.repository }}
-          ref:        ${{ steps.self.outputs.ref  || github.ref }}
+          repository: ${{ inputs.ksm_ref && env.SELF_REPO || github.repository }}
+          ref:        ${{ inputs.ksm_ref || github.ref }}
           fetch-depth: 0
 
       - name: Install yq
@@ -136,10 +136,10 @@ jobs:
           WANT_SRC_URL: ${{ inputs.SRC_URL }}
           # A cross-repo call is a manual run whose inputs happen to come from
           # another repository: one build, the scenarios it asked for, and none
-          # of the diff-based selection below -- github.event_name would say
+          # of the diff-based selection below -- github.event_name says
           # 'pull_request' there, but the diff and the base sha belong to the
           # caller, not to this repository.
-          EVENT: ${{ github.job_workflow_ref != '' && 'workflow_dispatch' || github.event_name }}
+          EVENT: ${{ inputs.ksm_ref && 'workflow_dispatch' || github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.sha }}
           FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full') }}
@@ -351,3 +351,4 @@ jobs:
       has_chain: ${{ matrix.scenario.chain }}
       src_url: ${{ inputs.SRC_URL || '' }}
       oci_url: ${{ inputs.OCI_URL || '' }}
+      ksm_ref: ${{ inputs.ksm_ref || '' }}

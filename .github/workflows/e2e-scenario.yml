@@ -4,6 +4,11 @@ name: E2E scenario
 # e2e.yml. The pipeline itself lives in the two entry points the README
 # documents, so CI runs exactly what a local run does.
 
+# See e2e.yml: a called workflow's github context describes the caller, so a
+# bare checkout clones the wrong repository.
+env:
+  SELF_REPO: josef-hak/k0rdent-ksm-tests
+
 on:
   workflow_call:
     inputs:
@@ -35,6 +40,11 @@ on:
         type: string
         required: false
         default: ''
+      ksm_ref:
+        description: 'The ref of THIS repository to run; empty when called from within it'
+        type: string
+        required: false
+        default: ''
 
 # No concurrency group here on purpose: the caller's cancels these jobs too.
 
@@ -60,25 +70,10 @@ jobs:
       SCENARIO: ${{ inputs.scenario }}
       TEST_MODE: self
     steps:
-      # In a cross-repo call the github context describes the caller, so a bare
-      # checkout clones that repository instead of this one. job_workflow_ref
-      # names this workflow file and the ref it was reached at; it is empty only
-      # when this workflow runs on its own events, where the defaults are right.
-      - name: Resolve this repository
-        id: self
-        env:
-          SELF: ${{ github.job_workflow_ref }}
-        run: |
-          set -euo pipefail
-          if [[ -n "$SELF" ]]; then
-            echo "repo=${SELF%%/.github/*}" >> "$GITHUB_OUTPUT"
-            echo "ref=${SELF#*@}"           >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@v7
         with:
-          repository: ${{ steps.self.outputs.repo || github.repository }}
-          ref:        ${{ steps.self.outputs.ref  || github.ref }}
+          repository: ${{ inputs.ksm_ref && env.SELF_REPO || github.repository }}
+          ref:        ${{ inputs.ksm_ref || github.ref }}
 
       # runner.* is not available in job-level env, so DEBUG is set here.
       - name: Enable debug output
