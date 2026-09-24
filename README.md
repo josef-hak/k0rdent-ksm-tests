@@ -18,29 +18,38 @@ Four phases. `deploy_k0rdent.sh` does the first, `run_scenario.sh` the middle tw
 and the services half of the last, `remove_k0rdent.sh` the rest.
 
 ```mermaid
-%%{init: {'flowchart': {'padding': 28, 'nodeSpacing': 45, 'rankSpacing': 55, 'subGraphTitleMargin': {'top': 6, 'bottom': 10}}}}%%
-flowchart LR
-    subgraph P1["1 · env"]
+%%{init: {'flowchart': {'padding': 16, 'nodeSpacing': 40, 'rankSpacing': 45}}}%%
+flowchart TB
+    subgraph ROW1[" "]
         direction LR
-        E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
+        subgraph P1["1 · env"]
+            direction LR
+            E1["build or pull<br/>KCM"] --> E2["k0s cluster<br/>in docker"] --> E3["install KCM<br/>+ Management"]
+        end
+        subgraph P2["2 · deploy"]
+            direction LR
+            D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
+        end
+        P1 --> P2
     end
 
-    subgraph P2["2 · deploy"]
+    subgraph ROW2[" "]
         direction LR
-        D1["ServiceTemplates"] --> D2["MultiClusterService<br/>+ wait"]
+        subgraph P3["3 · upgrade"]
+            direction LR
+            U1["bump versions"] -.- U2["or walk<br/>a chain"]
+        end
+        subgraph P4["4 · cleanup"]
+            direction LR
+            C1["remove<br/>services"] --> C2["remove<br/>cluster"]
+        end
+        P3 --> P4
     end
 
-    subgraph P3["3 · upgrade"]
-        direction LR
-        U1["bump versions"] -.- U2["or walk<br/>a chain"]
-    end
+    ROW1 --> ROW2
 
-    subgraph P4["4 · cleanup"]
-        direction LR
-        C1["remove<br/>services"] --> C2["remove<br/>cluster"]
-    end
-
-    P1 --> P2 --> P3 --> P4
+    classDef row fill:none,stroke:none
+    class ROW1,ROW2 row
 
     classDef env fill:#dbeafe,stroke:#2563eb,color:#0b1220
     classDef dep fill:#ede9fe,stroke:#7c3aed,color:#0b1220
