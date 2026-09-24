@@ -18,6 +18,7 @@ Four phases. `deploy_k0rdent.sh` does the first, `run_scenario.sh` the middle tw
 and the services half of the last, `remove_k0rdent.sh` the rest.
 
 ```mermaid
+%%{init: {'flowchart': {'padding': 28, 'nodeSpacing': 45, 'rankSpacing': 55, 'subGraphTitleMargin': {'top': 6, 'bottom': 10}}}}%%
 flowchart LR
     subgraph P1["1 · env"]
         direction LR
