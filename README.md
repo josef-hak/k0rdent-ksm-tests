@@ -69,7 +69,7 @@ deploys the services into the cluster it runs in. No second cluster, no
 | Scenario | Asserts |
 |---|---|
 | `101_basic` | one service reaches the child cluster and can be removed |
-| `201_svcdep` | a `dependsOn` chain deploys in order |
+| [`201_svcdep`](test_scenarios/201_svcdep.md) | a `dependsOn` chain deploys in order |
 | `202_svcdep_invalid` | an invalid service stops the rollout: nothing behind it runs, nothing before it is rolled back |
 | `301_upgrade` | upgrading one service leaves the others untouched |
 | `302_upgrade_invalid_atomic` | a failed atomic upgrade returns to the previous healthy state |
@@ -78,7 +78,7 @@ deploys the services into the cluster it runs in. No second cluster, no
 | `501_no_chain` | with no `ServiceTemplateChain`, any version is reachable |
 | `502_chain_boundary` | a chain offering nothing refuses every upgrade |
 | `503_direct_chain` | only what the chain lists is accepted |
-| `504_stepwise_chain` | a multi-hop chain is walked, not skipped |
+| [`504_stepwise_chain`](test_scenarios/504_stepwise_chain.md) | a multi-hop chain is walked, not skipped |
 
 Each runs against two KCM builds: `src: main` and `release: 1.12.0-rc.3`.
 
